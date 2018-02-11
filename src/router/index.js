@@ -3,6 +3,7 @@ import Router from 'vue-router'
 import HelloWorld from '@/components/HelloWorld'
 import Home from '@/components/HelloFromVux'
 import EssayPanel from '@/components/EssayPanel'
+import AddEssay from '@/components/essay/AddEssay'
 
 Vue.use(Router)
 
@@ -21,6 +22,10 @@ export default new Router({
     {
       path: '/essayList',
       component: EssayPanel
+    },
+    {
+      path: '/addEssay',
+      component: AddEssay
     }
   ]
 })

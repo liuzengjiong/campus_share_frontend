@@ -8,6 +8,12 @@ import Home from './components/HelloFromVux'
 
 import router from './router/index'
 
+import 'font-awesome/css/font-awesome.css'
+
+import constant_ from '@/components/tool/Constant'
+
+import VueResource from 'vue-resource'
+Vue.use(VueResource)
 Vue.use(VueRouter)
 
 /*const routes = [{

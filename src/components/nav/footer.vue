@@ -2,31 +2,23 @@
 
   <div>
     <div>
-      <group >
-        <popup-radio title="slot:each-item" :options="options3" v-model="option5" ref="selectOk" v-show="false" @on-hide='gotoAddPage()'>
-          <template slot-scope="props" slot="each-item"><!-- use scope="props" when vue < 2.5.0 -->
-            <p>
-               {{ props.label }}
-                <br>
-                <span style="color:#666;font-size:0.8rem">{{options3Mean[props.index]}}</span>
-            </p>
-          </template>
-        </popup-radio>
-      </group>
+        <actionsheet v-model="showModel" :menus="addItems" show-cancel :close-on-clicking-mask="closeOnClickMask" @on-click-menu="clickItem">
+           <p slot="header" v-html="headerContent"></p>
+        </actionsheet>
     </div>
   <div class="footer">
     <ul class="footer-cont">
-        <li>
+        <li class="activeChange">
           <router-link to="/essayList">
             <div>任务</div>
           </router-link>
         </li>
-        <li style='width: 34%;' @click="addFunction()">
+        <li style='width: 20%;'>
         <!--  <router-link to="/helloWord">-->
-            <img src="@/assets/add.png" style="width:1.8rem;height:1.8rem;display:block;position:absolute;bottom:0;left:50%;margin-left:-0.9rem;">
+            <img src="@/assets/add.png" @click="addFunction()" style="width:1.8rem;height:1.8rem;display:block;position:absolute;bottom:0;left:50%;margin-left:-0.9rem;">
           <!--</router-link>-->
         </li>
-        <li>
+        <li class="activeChange">
           <router-link to="/">
             <div>我</div>
           </router-link>
@@ -38,57 +30,50 @@
 
 
 <script>
-import {Group,PopupRadio } from 'vux'
+import {Actionsheet } from 'vux'
 
 const haveSelectOption = false;
 
 export default {
   components: {
-    Group,
-    PopupRadio
+    Actionsheet
   },
   data () {
-    return {
-      option1: 'A',
-      options1: ['A', 'B', 'C'],
-      option2: '',
-      options2: [{
-        key: 'A',
-        value: 'label A'
-      }, {
-        key: 'B',
-        value: 'label B'
-      }],
-      option3: 'C',
-      options3: ['求助', '共享'],
-      options3Mean:['向其他人寻求资源或帮助','提供你的闲置资源'],
-      option4: 'B',
-      option5: null
+    return{
+      headerContent:"<font size='0.8rem' color='#799dbe'>请选择要发布的帖子类型</font>",
+      showModel: false,
+      closeOnClickMask:false,
+      addItems: [{
+        code:'askHelp',
+        label:'求助<br /><span style="color:#666;font-size:0.5rem;">向其他人寻求资源或帮助</span>'
+      },{
+        code:'share',
+        label:'共享<br /><span style="color:#666;font-size:0.5rem;">提供你的闲置资源</span>'
+      }]
     }
   },
   methods:{
     addFunction(){
-        this.$refs.selectOk.show();
-        this.option5=null;
+      this.showModel = true;
+        /*this.$refs.selectOk.show();
+        this.option5=null;*/
       /*  this.$emit('showSelect');*/
     },
-    gotoAddPage(){
-
-      if(this.haveSelectOption && this.option5 == null){
-        //防止初始化后被隐藏
-        this.$refs.selectOk.show();
+    clickItem(key,item){
+      if(!item){
+        console.log("item:",item);
+        return;
       }
-      var result = this.option5;
-      if(result == null){
-         this.haveSelectOption = false;
-      }else{
-         this.haveSelectOption = true;
-      }
-      console.log("选择结果：" + result);
-      if(this.haveSelectOption){
-         this.$router.push({path:'/helloWord'})
+      var code = item.code;
+      if('askHelp' === code){
+        alert("假装去了求助页面");
+      }else if('share' === code){
+        this.$router.push("/addEssay");
       }
     }
+  },
+  directives:{
+
   },
   haveSelectOption
 }
@@ -108,14 +93,14 @@ export default {
   }
   .footer-cont li {
     float: left;
-    width: 33%;
+    width: 40%;
     height: 1.3rem;
     line-height: 1.3rem;
     font-size: 1.0rem;
     color: #ff8000;
     text-align: center;
   }
-  .footer-cont li:active {
+  .footer-cont .activeChange:active {
     background-color: #ccc;
   }
   .footer-cont:after {
