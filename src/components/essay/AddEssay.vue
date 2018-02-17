@@ -14,6 +14,7 @@
 import VueHtml5Editor from 'vue-html5-editor'
 import AddEssayFooter from '@/components/essay/AddEssayFooter'
 
+import auth from '@/components/tool/Auth'
 import constant_ from '@/components/tool/Constant'
 
 const uploadImageUrl = constant_.SERVER_PATH + "/upload/uploadImage";
@@ -160,8 +161,13 @@ export default {
        this.content = data;
     },
     submit(){
+        var authorId = '';
+        var userInfo = auth.getLoginUser();
+        if(userInfo){
+            authorId = userInfo.userId;
+        }
         const reqData = {
-            authorId : 1,
+            authorId : authorId,
             title : "这是个标题",
             essayType: 3,
             resourceTypeId:2,

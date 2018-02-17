@@ -4,6 +4,7 @@ import HelloWorld from '@/components/HelloWorld'
 import Home from '@/components/HelloFromVux'
 import EssayPanel from '@/components/EssayPanel'
 import AddEssay from '@/components/essay/AddEssay'
+import Login from '@/components/user/Login'
 
 Vue.use(Router)
 
@@ -26,6 +27,10 @@ export default new Router({
     {
       path: '/addEssay',
       component: AddEssay
+    },
+    {
+      path: '/login',
+      component: Login
     }
   ]
 })

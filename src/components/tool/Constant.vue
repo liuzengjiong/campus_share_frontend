@@ -6,7 +6,8 @@ const serverPath_local = "http://localhost:9090/";
 
 const SERVER_PATH = serverPath_local;
 const CODE = {
-    "SUCCESS": "0000"
+    "SUCCESS": "0000",
+    "UNLOGIN": "2001"
 }
 
 export default
