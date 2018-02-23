@@ -9,7 +9,7 @@
   <div class="footer">
     <ul class="footer-cont">
         <li class="activeChange">
-          <router-link to="/essayList">
+          <router-link to="/essay">
             <div>任务</div>
           </router-link>
         </li>
@@ -19,7 +19,7 @@
           <!--</router-link>-->
         </li>
         <li class="activeChange">
-          <router-link to="/">
+          <router-link to="/me">
             <div>我</div>
           </router-link>
         </li>
@@ -66,16 +66,12 @@ export default {
       }
       var code = item.code;
       if('askHelp' === code){
-        alert("假装去了求助页面");
+        this.$router.push({name:'AddEssay',query:{type:'ask'}});
       }else if('share' === code){
-        this.$router.push("/addEssay");
+        this.$router.push({name:'AddEssay',query:{type:'share'}});
       }
     }
-  },
-  directives:{
-
-  },
-  haveSelectOption
+  }
 }
 </script>
 
@@ -99,6 +95,7 @@ export default {
     font-size: 1.0rem;
     color: #ff8000;
     text-align: center;
+    display: block;
   }
   .footer-cont .activeChange:active {
     background-color: #ccc;

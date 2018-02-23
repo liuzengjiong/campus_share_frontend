@@ -4,7 +4,6 @@ import Vue from 'vue'
 import FastClick from 'fastclick'
 import VueRouter from 'vue-router'
 import App from './App'
-import Home from './components/HelloFromVux'
 
 import router from './router/index'
 
@@ -14,33 +13,75 @@ import constant_ from '@/components/tool/Constant'
 import auth from '@/components/tool/Auth'
 
 import VueResource from 'vue-resource'
+import  { ConfirmPlugin,ToastPlugin } from 'vux'
+
+Vue.use(ConfirmPlugin)
 Vue.use(VueResource)
 Vue.use(VueRouter)
+Vue.use(ToastPlugin)
 
 auth.checkAuth();
 if(!auth.authenticated){
     router.push('/login');
 }
 
-Vue.http.interceptors.push((request, next) => {
+Vue.http.interceptors.push(function(request,next){
+    request.headers.set('Authorization', auth.getToken());
+    next(function (response) {
+      var resJson = JSON.parse(response.bodyText);
+   　　if(constant_.CODE.UNLOGIN == resJson.code){
+           var content = "登录异常，是否重新登录";
+           if(resJson.msg){
+             content = resJson.msg + "，是否重新登录";
+           }
+           var _this = this;
+           this.$vux.confirm.show({
+             title: '登录提醒',
+             content:content,
+             onCancel () {
 
-  // modify request
-  request.headers.set('Authorization', auth.getToken());
-  // continue to next interceptor
-　　next((response) => {//在响应之后传给then之前对response进行修改和逻辑判断。对于token时候已过期的判断，就添加在此处，页面中任何一次http请求都会先调用此处方法
-       var resJson = JSON.parse(response.bodyText);
-    　　if(constant_.CODE.UNLOGIN == resJson.code){
-            if(resJson.msg){
-                alert(resJson.msg);
-            }else{
-                alert("抱歉，登录异常，请重新登录");
-            }
-            router.push('/login');
-       }
+             },
+             onConfirm (msg) {
+                _this.$router.push('/login');
+             }
+           })
+      }
 　　　　return response;
 
-  });
+    })
 });
+
+
+Vue.prototype.trim = function(str){
+    if(str){
+      return str.replace(/^\s+|\s+$/gm,'');
+    }
+    return str;
+}
+
+Vue.prototype.showMsgMiddle = function(msg){
+    if(msg){
+      this.$vux.toast.text(msg,'middle');
+    }
+}
+
+/*Vue.prototype.vuxComfirm = function(title,content,cbConfirm,cbCancel){
+  this.$vux.confirm.show({
+    title: title,
+    content: content,
+    onCancel () {
+      cbCancel();
+      return false;
+    },
+    onConfirm () {
+      cbConfirm();
+      return true;
+    }
+  })
+}*/
+
+
+
 
 /*const routes = [{
   path: '/',
@@ -59,4 +100,4 @@ Vue.config.productionTip = false
 new Vue({
   router,
   render: h => h(App)
-}).$mount('#app-box')
+}).$mount('#app-box');

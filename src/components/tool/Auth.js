@@ -1,5 +1,6 @@
 
 import constant_ from '@/components/tool/Constant'
+import router from '@/router/index'
 
 const LOGIN_URL = constant_.SERVER_PATH +'/user/login'
 
@@ -26,12 +27,26 @@ export default{
             context.errorMsg = err.body.message;
         })
     },
+    logout(context){
+      const _this = context;
+      context.$vux.confirm.show({
+        title: '确认退出登录吗？',
+        onCancel () {
+
+        },
+        onConfirm (msg) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userLogin');
+          this.authenticated = false;
+          _this.$router.replace('/login');
+        }
+      })
+    },
     getToken(){
         return 'Auth '+localStorage.getItem('token');
     },
     getLoginUser(){
       var userStr =  localStorage.getItem('userLogin');
-      console.log(userStr);
       if(userStr){
          return JSON.parse(userStr);
       }else{

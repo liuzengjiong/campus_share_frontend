@@ -1,14 +1,16 @@
 <template>
   <div>
-  <!--  <div style="margin-bottom:1.3rem">
-    <div>-->
-      <editor :content="content" :height="height" @change="updateData" style="margin-bottom:1.3rem"></editor>
-  <!--  </div>
-    <div  ref="essayFooter">-->
-      <addEssayFooter @submit='submit'></addEssayFooter>
+    <x-header>{{headerText}}</x-header>
+    <group class='titleCss'>
+      <x-input  :max="50" title='任务标题' placeholder="请起一个合适的标题" required v-model="title" placeholder-align='right'></x-input>
+      <popup-radio :title="resourceTitle" :options="resourceData" v-model="resourceType" :placeholder="resourceTypeTip">
+         <p slot="popup-header" class="vux-1px-b resource-slot">{{resourceTypeTip}}</p>
+       </popup-radio>
+    </group>
+      <editor :content="content" :height="height" @change="updateData" :z-index="100" style="margin-bottom:1.5rem"></editor>
+      <addEssayFooter @submit='submit' ref='addEssayFooter'></addEssayFooter>
+      <loading :show="showLoading" :text="loadingText"></loading>
     </div>
-  </div>
-  </div>
 </template>
 <script>
 import VueHtml5Editor from 'vue-html5-editor'
@@ -17,7 +19,11 @@ import AddEssayFooter from '@/components/essay/AddEssayFooter'
 import auth from '@/components/tool/Auth'
 import constant_ from '@/components/tool/Constant'
 
+import {Group,XInput,XHeader,PopupRadio,Loading} from 'vux'
+
 const uploadImageUrl = constant_.SERVER_PATH + "/upload/uploadImage";
+const publishEssayUrl = constant_.SERVER_PATH + "essay/add";
+const resourceTypeUrl = constant_.SERVER_PATH + "/config/resource-types";
 
 const option = {
   // 自定义各个图标的class，默认使用的是font-awesome提供的图标
@@ -129,7 +135,7 @@ const option = {
       visibleModules: [
           "text",
           "color",
-          "font",
+          /*"font",*/
           "align",
         /*  "list",*/
         /*  "link",
@@ -145,39 +151,135 @@ const option = {
 }
 
 const editor = new VueHtml5Editor(option);
-
 export default {
   components: {
+    Loading,
+    PopupRadio,
+    XHeader,
+    Group,
+    XInput,
     editor,
     AddEssayFooter
   },data(){
     var editorHeight = document.documentElement.clientHeight-50;
     return{
       height:editorHeight,
-      content:''
+      content:'',
+      headerText : '发布任务',
+      title:'',
+      essayType:'',
+      resourceTitle: '资源类型',
+      resourceData:[],
+      resourceType: '',
+      resourceTypeTip: '请选择资源类型',
+      showLoading: false,
+      loadingText: '加载中'
     }
   },methods:{
     updateData : function(data){
        this.content = data;
     },
+    checkData(){
+      if (this.trim(this.content) === '') {
+        this.showMsgMiddle("请输入任务内容");
+        return false;
+      }
+      if (this.trim(this.title) === ''){
+        this.showMsgMiddle("请输入标题");
+        return false;
+      }
+      if (this.trim(this.resourceType) === ''){
+        this.showMsgMiddle("请选择资源类型");
+        return false;
+      }
+      return true;
+    },
     submit(){
-        var authorId = '';
-        var userInfo = auth.getLoginUser();
-        if(userInfo){
-            authorId = userInfo.userId;
+        if (!this.checkData()) {
+          return;
+        } else {
+          var authorId = '';
+          var userInfo = auth.getLoginUser();
+          console.log(userInfo);
+          if(userInfo){
+              authorId = userInfo.userId;
+          }else{
+              this.showMsgMiddle("未登录，无法发布任务");
+              return;
+          }
+          const reqData = {
+              authorId : authorId,
+              title : this.title,
+              essayType: this.essayType,
+              resourceType:this.resourceType,
+              content:this.content
+          };
+          this.loadingText = '发布中';
+          this.showLoading = true;
+          this.$http.post(publishEssayUrl,reqData).then((data) => {
+              this.showLoading = false;
+              if(data.body.code == constant_.CODE.SUCCESS){
+                 this.showMsgMiddle("发布成功");
+                 this.$router.go(-1);
+              }else{
+                 if(data.body.msg){
+                    this.showMsgMiddle(data.body.msg);
+                 }else{
+                    this.showMsgMiddle("抱歉，发布异常");
+                 }
+              }
+          });
         }
-        const reqData = {
-            authorId : authorId,
-            title : "这是个标题",
-            essayType: 3,
-            resourceTypeId:2,
-            content:this.content
-        };
-        this.$http.post(constant_.SERVER_PATH + "essay/add",reqData, function(data) {
-            console.log(data);
-        })
+    },
+    getResourceType(){
+      this.loadingText = '加载中';
+      this.showLoading = true;
+      this.$http.get(resourceTypeUrl).then((data) => {
+          console.log(data);
+          this.showLoading = false;
+          if(data.body.code == constant_.CODE.SUCCESS){
+            this.resourceData = data.body.data;
+          }else{
+              this.$refs.addEssayFooter.disableSubmit();
+              if(data.body.msg){
+                  this.showMsgMiddle(data.body.msg);
+              }else{
+                  this.showMsgMiddle("抱歉，系统异常，请稍后再试");
+              }
+          }
+      });
     }
+  },created () {
+      this.essayType = this.$route.query.type;
+      if(this.essayType === 'share'){
+         this.headerText = '发布共享';
+         this.essayType = '共享';
+         this.resourceTypeTip = '请选择你要共享的资源类型';
+      }else if(this.essayType === 'ask'){
+         this.headerText = '发布求助';
+         this.essayType = '求助';
+         this.resourceTypeTip = '请选择你需要的资源类型';
+      }else{
+         this.showMsgMiddle('抱歉，发布类型错误 ' + essayType);
+         this.$router.go(-1);
+      }
+      this.getResourceType();
   }
 }
 
 </script>
+
+<style scoped>
+  .titleCss{
+    margin-top:-1rem;
+  }
+  .resource-slot {
+    text-align: center;
+    padding: 8px 0;
+    color: #888;
+    font-size: 0.7rem;
+  }
+  .resource-radio{
+     font-size: 0.8rem;
+  }
+</style>
