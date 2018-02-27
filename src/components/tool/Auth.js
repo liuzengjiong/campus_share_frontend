@@ -9,15 +9,19 @@ export default{
         authenticated:false
     },
     login(context,info){
+        context.loadingText = "努力登录中";
+        context.showLoading = true;
         context.$http.post(LOGIN_URL,info).then(function(data){
+            context.showLoading = false;
             console.log(data.bodyText);
             var resJson = JSON.parse(data.bodyText);
             if(constant_.CODE.SUCCESS == resJson.code){
-              localStorage.setItem('token',resJson.data.token);
-              localStorage.setItem('userLogin',JSON.stringify(resJson.data));
+              localStorage.setItem('token',resJson.data.userLogin.token);
+              localStorage.setItem('userLogin',JSON.stringify(resJson.data.userLogin));
+              localStorage.setItem('userInfo',JSON.stringify(resJson.data.userInfo));
               this.authenticated = true
               //跳到home页
-              this.$router.push('/');
+              this.$router.replace('/');
             }else{
                 context.errorMsg = resJson.msg;
             }
@@ -37,6 +41,7 @@ export default{
         onConfirm (msg) {
           localStorage.removeItem('token');
           localStorage.removeItem('userLogin');
+          localStorage.removeItem('userInfo');
           this.authenticated = false;
           _this.$router.replace('/login');
         }
@@ -53,6 +58,31 @@ export default{
         localStorage.setItem('token','');
         return userStr;
       }
+    },
+    getLoginUserInfo(){
+      var userInfoStr =  localStorage.getItem('userInfo');
+      if(userInfoStr){
+         return JSON.parse(userInfoStr);
+      }else{
+        return userInfoStr;
+      }
+    },
+    needLoginUserInfo(context,target){
+      var userInfo = this.getLoginUserInfo();
+      if(!userInfo){
+        const _this = context;
+        context.$vux.confirm.show({
+          title: '是否前往登录？',
+          content:'未登录无法' + target,
+          onCancel () {
+            _this.showMsgMiddle("未登录，无法" + target);
+          },
+          onConfirm (msg) {
+            _this.$router.push('/login');
+          }
+        })
+      }
+      return userInfo;
     },
     checkAuth(){
         var token = localStorage.getItem('token');

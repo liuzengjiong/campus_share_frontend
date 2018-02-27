@@ -1,15 +1,42 @@
 <template>
-  <div>
+  <div class="background-color:#FFF">
     <x-header>{{headerText}}</x-header>
     <group class='titleCss'>
       <x-input  :max="50" title='任务标题' placeholder="请起一个合适的标题" required v-model="title" placeholder-align='right'></x-input>
       <popup-radio :title="resourceTitle" :options="resourceData" v-model="resourceType" :placeholder="resourceTypeTip">
          <p slot="popup-header" class="vux-1px-b resource-slot">{{resourceTypeTip}}</p>
        </popup-radio>
+       <cell :title="rewardTitle" :value="rewardDisplay" is-link @click.native='showRewardPanel'></cell>
     </group>
       <editor :content="content" :height="height" @change="updateData" :z-index="100" style="margin-bottom:1.5rem"></editor>
       <addEssayFooter @submit='submit' ref='addEssayFooter'></addEssayFooter>
       <loading :show="showLoading" :text="loadingText"></loading>
+      <div v-transfer-dom>
+        <popup v-model="showRewardPopup" :hide-on-blur="false">
+          <div>
+            <group>
+              <x-switch :title="rewardTitle" v-model="needReward"></x-switch>
+            </group>
+            <div v-if="needReward">
+              <group>
+                <popup-radio title="报酬类型" :options="rewardData" v-model="rewardType" placeholder="请选择报酬类型">
+                   <p slot="popup-header" class="vux-1px-b resource-slot">请选择报酬类型</p>
+                 </popup-radio>
+                <x-textarea title="报酬描述" v-model="rewardDetail" placeholder="请根据你的报酬类型进行具体描述" :max="100" autosize></x-textarea>
+              </group>
+              <group>
+                <x-input  :max="20" title='联系电话' placeholder="让任务执行者快速找到你" required v-model="phoneNumber" placeholder-align='right'></x-input>
+              </group>
+              <group title="任务接受人数限制，0为不限">
+                <x-number title="人数" v-model="maxReceiveNum" button-style="round" :min="0" :max="9999" fillable></x-number>
+              </group>
+          </div>
+            <div style="padding:20px 15px;">
+              <x-button type="primary" @click.native='ensureReward'>确定</x-button>
+            </div>
+          </div>
+        </popup>
+      </div>
     </div>
 </template>
 <script>
@@ -19,11 +46,12 @@ import AddEssayFooter from '@/components/essay/AddEssayFooter'
 import auth from '@/components/tool/Auth'
 import constant_ from '@/components/tool/Constant'
 
-import {Group,XInput,XHeader,PopupRadio,Loading} from 'vux'
+import {XNumber,XTextarea,Group,XInput,XHeader,PopupRadio,Loading,Cell,TransferDom,Popup,XSwitch,XButton} from 'vux'
 
 const uploadImageUrl = constant_.SERVER_PATH + "/upload/uploadImage";
 const publishEssayUrl = constant_.SERVER_PATH + "essay/add";
 const resourceTypeUrl = constant_.SERVER_PATH + "/config/resource-types";
+const rewardTypeUrl = constant_.SERVER_PATH + "/config/reward-types";
 
 const option = {
   // 自定义各个图标的class，默认使用的是font-awesome提供的图标
@@ -71,7 +99,7 @@ const option = {
               //default accept json data like  {ok:false,msg:"unexpected"} or {ok:true,data:"image url"}
               var json = JSON.parse(responseText)
               if (constant_.CODE.SUCCESS != json.code) {
-                  alert(json.msg);
+                  this.showMsgMiddle(json.msg);
               } else {
                   return json.data;
               }
@@ -138,8 +166,8 @@ const option = {
           /*"font",*/
           "align",
         /*  "list",*/
-        /*  "link",
-          "unlink",*/
+          "link",
+          /*"unlink",*/
           "tabulation",
           "image",
           "hr",
@@ -152,16 +180,25 @@ const option = {
 
 const editor = new VueHtml5Editor(option);
 export default {
+  directives: {
+    TransferDom
+  },
   components: {
+    XNumber,
+    XTextarea,
+    XButton,
+    XSwitch,
+    Popup,
     Loading,
     PopupRadio,
     XHeader,
     Group,
     XInput,
     editor,
+    Cell,
     AddEssayFooter
   },data(){
-    var editorHeight = document.documentElement.clientHeight-50;
+    var editorHeight = document.documentElement.clientHeight/2;
     return{
       height:editorHeight,
       content:'',
@@ -173,7 +210,16 @@ export default {
       resourceType: '',
       resourceTypeTip: '请选择资源类型',
       showLoading: false,
-      loadingText: '加载中'
+      loadingText: '加载中',
+      rewardTitle: '报酬',
+      rewardDisplay: '请选择',
+      showRewardPopup: false,
+      needReward: false,
+      rewardDetail: '',
+      rewardType: '',
+      rewardData: [],
+      maxReceiveNum: 0,
+      phoneNumber:''
     }
   },methods:{
     updateData : function(data){
@@ -199,10 +245,10 @@ export default {
           return;
         } else {
           var authorId = '';
-          var userInfo = auth.getLoginUser();
-          console.log(userInfo);
-          if(userInfo){
-              authorId = userInfo.userId;
+          var userLogin = auth.getLoginUser();
+          console.log(userLogin);
+          if(userLogin){
+              authorId = userLogin.userId;
           }else{
               this.showMsgMiddle("未登录，无法发布任务");
               return;
@@ -214,6 +260,15 @@ export default {
               resourceType:this.resourceType,
               content:this.content
           };
+          const reward = {
+             rewardTypeValue : this.rewardType,
+             rewardDetail : this.rewardDetail,
+             maxReceiveNum : this.maxReceiveNum,
+             phoneNumber : this.phoneNumber
+          }
+          if(this.needReward){
+              reqData.reward = reward;
+          }
           this.loadingText = '发布中';
           this.showLoading = true;
           this.$http.post(publishEssayUrl,reqData).then((data) => {
@@ -248,8 +303,75 @@ export default {
               }
           }
       });
+    },
+    getRewardType(){
+      if(this.rewardData.length > 0){
+        return;
+      }
+      this.loadingText = '加载中';
+      this.showLoading = true;
+      this.$http.get(rewardTypeUrl).then((data) => {
+          this.showLoading = false;
+          if(data.body.code == constant_.CODE.SUCCESS){
+            this.rewardData = data.body.data;
+          }else{
+              this.needReward = false;
+              this.showMsgMiddle("抱歉，报酬加载失败，请稍后再试");
+          }
+      });
+    },
+    showRewardPanel(){
+      this.showRewardPopup = true;
+    },
+    ensureReward(){
+      if(this.needReward){
+         if(!this.rewardType){
+           this.showMsgMiddle('请选择报酬类型');
+           return;
+         }
+         if(!this.phoneNumber){
+           this.showMsgMiddle('请输入联系电话');
+           return;
+         }
+      }
+      this.showReward();
+      this.showRewardPopup = false;
+    },
+    showReward(){
+      if(!this.phoneNumber || this.phoneNumber.trim().length == 0){
+        var userInfo = auth.getLoginUserInfo();
+        if(userInfo && userInfo.phone){
+            this.phoneNumber = userInfo.phone;
+        }
+      }
+      const urlEssayType = this.$route.query.type;
+      if(urlEssayType === 'share'){
+         this.rewardTitle = '收取报酬';
+         if(!this.needReward){
+            this.rewardDisplay = '不收取报酬';
+         }else{
+            let personNum = '人数：' + (this.maxReceiveNum==0?'不限':this.maxReceiveNum);
+            this.rewardDisplay = this.rewardType + " - " + personNum;
+         }
+      }else if(urlEssayType === 'ask'){
+        this.rewardTitle = '提供报酬';
+        if(!this.needReward){
+             this.rewardDisplay = '不提供报酬';
+        }else{
+           let personNum = '人数：' + (this.maxReceiveNum==0?'不限':this.maxReceiveNum);
+           this.rewardDisplay = this.rewardType + " - " + personNum;
+        }
+      }
     }
-  },created () {
+  },
+  watch:{
+     needReward : function(val){
+        if(val){
+           this.getRewardType();
+        }
+     }
+  },
+  created () {
       this.essayType = this.$route.query.type;
       if(this.essayType === 'share'){
          this.headerText = '发布共享';
@@ -263,11 +385,22 @@ export default {
          this.showMsgMiddle('抱歉，发布类型错误 ' + essayType);
          this.$router.go(-1);
       }
+      this.showReward();
       this.getResourceType();
   }
 }
 
 </script>
+
+<style>
+  .content:empty:before{
+    content: "请描述你的任务";
+    color:#bbb;
+  }
+  .content:focus:before{
+    content:none;
+  }
+</style>
 
 <style scoped>
   .titleCss{

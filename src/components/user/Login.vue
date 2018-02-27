@@ -9,20 +9,24 @@
     <div style="padding:15px;">
      <x-button @click.native="doLogin" type="primary">登录</x-button>
    </div>
+   <loading :show="showLoading" :text="loadingText"></loading>
   </div>
 </template>
 
 <script>
-import { XInput, Group ,XButton} from 'vux'
+import { XInput, Group ,XButton,Loading} from 'vux'
 import auth from '@/components/tool/Auth'
 export default {
   components: {
     XInput,
     Group,
-    XButton
+    XButton,
+    Loading
   },
   data () {
     return {
+      showLoading : false,
+      loadingText : '加载中',
       userNo: '',
       userPassword: '',
       errorStyle:'color:red;font-size:0.6rem;margin-left:0.3rem',

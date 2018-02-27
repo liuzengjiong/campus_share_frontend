@@ -1,22 +1,20 @@
 <template lang="html">
 
   <div>
-    <x-header>任务列表</x-header>
-    <div>
+    <div class='isFixed'>
+      <x-header :left-options="{showBack: false}">任务列表</x-header>
        <tab :line-width=2 active-color='#799dbe' v-model="tabIndex">
-        <tab-item class="vux-center" v-for="(tabItem, tabIndex) in tabList" :key="tabIndex">{{tabItem}}</tab-item>
+        <tab-item class="vux-center" v-for="(tabItem, tabIndex) in tabList" :key="tabIndex" @on-item-click="changeTab">{{tabItem}}</tab-item>
       </tab>
-      <swiper v-model="tabIndex" :show-dots="false">
+<!--      <swiper v-model="tabIndex" :show-dots="false">
         <swiper-item v-for="(tabItem, tabIndex) in tabList" :key="tabIndex">
-          <div>
 
-          </div>
         </swiper-item>
-      </swiper>
+      </swiper>-->
     </div>
     <scroller use-pullup :pullup-config="pullupDefaultConfig" @on-pullup-loading="loadMore"
           use-pulldown :pulldown-config="pulldownDefaultConfig" @on-pulldown-loading="refresh"
-          lock-x ref="scrollerBottom" height="-48" style='font-size:0.6rem;'>
+          lock-x ref="scrollerBottom" height="-96" style='font-size:0.6rem;'>
       <div>
       <ul  v-for='item in list' :key="item.id">
         <li class="essayItem">
@@ -25,6 +23,7 @@
                  <div class="title clearfix">
                    <img :src=getAvatar(item.author.avatarPath) alt="头像">
                  </div>
+                 <div v-if="item.reward" class='borderInfo'>{{getRewardDesc(item.reward)}}</div>
                  <div class="titleText">
                     {{item.title}}
                  </div>
@@ -32,7 +31,6 @@
                    {{item.summary}}
                  </div>
                  <div class="operate clearfix">
-
                    <span class="icon view-icon"></span><span class="icon_text">{{item.readNum}}</span>
                    <span class="icon reply-icon"></span><span class="icon_text">{{item.commentNum}}</span>
                   <span class="publishInfo">{{item.author.nickname}} 发布于 {{getRecentTime(item.createTime)}}</span>
@@ -76,7 +74,7 @@
   }
 
   const pullupDefaultConfig = {
-    content: '上拉加载更多',
+    content: '',
     pullUpHeight: 60,
     height: 40,
     autoRefresh: false,
@@ -108,7 +106,13 @@ export default {
           showLoading : false,
           loadingText : "加载中",
           tabList: tabList(),
-          tabIndex: 0
+          tabIndex: 0,
+          cacheList : {
+             ask:[],
+             share:[],
+             askHaveMore:false,
+             shareHaveMore:false
+          }
       }
   },
   mounted () {
@@ -118,10 +122,16 @@ export default {
       fetchData(cb) {
         const essayListUrl = essayListBaseUrl + "/" + this.pageNo + "/" + this.rows;
         this.showLoading = true;
-        const _this = this;
-        this.$http.get(essayListUrl).then((data) => {
+        const tabItem = this.tabList[this.tabIndex];
+        const reqData = {
+          params:{
+            essayType : tabItem
+          }
+        };
+        this.$http.get(essayListUrl,reqData).then((data) => {
           this.$nextTick(() => {
-            this.$refs.scrollerBottom.reset()
+            this.$refs.scrollerBottom.reset();
+            this.saveCache();
           })
           this.showLoading = false;
           if(data.body.code == constant_.CODE.SUCCESS){
@@ -137,9 +147,9 @@ export default {
             cb(gotList);
           }else{
             if(data.body.msg){
-               alert(data.body.msg);
+               this.showMsgMiddle(data.body.msg);
             }else{
-               alert("抱歉，系统异常，请稍后再试");
+               this.showMsgMiddle("抱歉，系统异常，请稍后再试");
             }
           }
 
@@ -167,12 +177,91 @@ export default {
            return avatarPath;
          }
          return '/static/img/defaultAvatar.png'
+      },
+      isAsk(){
+        const tabItem = this.tabList[this.tabIndex];
+        if(tabItem == '求助'){
+           return true;
+        }else if(tabItem == '共享'){
+           return false;
+        }
+        return false;
+      },
+      changeTab(){
+         var cache = [];
+         var cacheHaveMore;
+         if(this.isAsk()){
+            cache = this.cacheList.ask;
+            cacheHaveMore = this.cacheList.askHaveMore;
+         }else{
+            cache = this.cacheList.share;
+              cacheHaveMore = this.cacheList.shareHaveMore;
+         }
+         if(cache.length){
+            this.list = cache;
+            if(cacheHaveMore){
+              this.$refs.scrollerBottom.enablePullup();
+              this.showTip = false;
+            }else{
+              this.$refs.scrollerBottom.disablePullup();
+              this.showTip = true;
+            }
+         }else{
+            this.$refs.scrollerBottom.disablePullup();
+            this.showTip = false;
+            this.list = [];
+            this.refresh();
+         }
+      },
+      saveCache(){
+        if(this.isAsk()){
+           this.cacheList.ask = this.list;
+           if(this.showTip){
+              this.cacheList.askHaveMore = false;
+           }else{
+              this.cacheList.askHaveMore = true;
+           }
+        }else{
+           this.cacheList.share = this.list;
+           if(this.showTip){
+              this.cacheList.shareHaveMore = false;
+           }else{
+              this.cacheList.shareHaveMore = true;
+           }
+        }
+      },
+      getRewardDesc(reward){
+         if(!reward){
+           return '';
+         }
+        if(this.isAsk()){
+           return '提供：' + reward.rewardTypeValue;
+        }else{
+           return '收取：' + reward.rewardTypeValue;
+        }
       }
     }
 }
 </script>
 
 <style>
+
+  .borderInfo{
+    font-size: 0.4rem;
+    display: block;
+    float: right;
+    color: #e78170;
+    border: 1px solid #e78170;
+    padding: 2px;
+    margin-right:0.5rem;
+    border-radius: 3px;
+  }
+
+  .isFixed {
+    position: sticky;
+    left: 0;
+    top: 0;
+  }
 
   .tip {
    height: 0.8rem;

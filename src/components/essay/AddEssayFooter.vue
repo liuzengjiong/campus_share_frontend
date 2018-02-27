@@ -2,24 +2,34 @@
 
   <div >
   <div class="footer">
-    <ul class="footer-cont">
-        <li class="activeChange" @click="cancel">
-            <div>取消</div>
-        </li>
-        <li class="activeChange" @click="submit" v-bind:class="submitDis">
-            <div>提交</div>
-        </li>
-    </ul>
+    <div class="btnDiv">
+      <flexbox>
+      <flexbox-item>
+        <x-button class="buttonCss" plain @click.native="cancel">取消</x-button>
+      </flexbox-item>
+      <span class="divider-vertical"></span>
+      <flexbox-item>
+        <x-button class="buttonCss" plain @click.native="submit" :disabled="submitDis">提交</x-button>
+      </flexbox-item>
+      </flexbox>
+    </div>
   </div>
   </div>
 </template>
 
 
 <script>
+import {Flexbox,FlexboxItem,XButton} from 'vux'
+
 export default {
+  components:{
+    Flexbox,
+    FlexboxItem,
+    XButton
+  },
   data(){
     return {
-       submitDis:''
+       submitDis:false
     }
   },
   methods:{
@@ -50,7 +60,7 @@ export default {
       })
     },
     disableSubmit(){
-      this.submitDis = 'disabled';
+      this.submitDis = true;
     }
   }
 }
@@ -66,30 +76,17 @@ export default {
     bottom: 0;
     left: 0;
     border-top: 2px solid #ccc;
-    background-color: #fff;
+    background-color: #EEE;
   }
-  .footer-cont li {
-    float: left;
-    width: 50%;
-    height: 1.3rem;
-    line-height: 1.3rem;
-    font-size: 1.0rem;
-    color: #799dbe;
-    text-align: center;
-    background-color: #35485d;
+  .buttonCss{
+    border:0;
+    margin:0;
+    padding: 0;
   }
-  .footer-cont .activeChange:active {
-    background-color: #ccc;
-  }
-  .footer-cont:after {
-    content: '';
-    display: block;
-    clear: both;
-    width: 0;
-    height: 0;
-  }
-  .disabled{
-    pointer-events:none;
-    color: #999;
+  .divider-vertical{
+    padding:1rem 0.65rem 0.65rem 0;
+    margin-left: 0.65rem;
+    border-left: 1px solid #000;
+    font-size: 0;
   }
 </style>
